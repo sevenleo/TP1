@@ -1,6 +1,5 @@
 import java.net.*;
 import java.io.*;
-import java.util.*;
 
 /*
  * The Client that can be run both as a console or a GUI
@@ -150,6 +149,8 @@ public class Client  {
 	 * In console mode, if an error occurs the program simply stops
 	 * when a GUI id used, the GUI is informed of the disconnection
 	 */
+	
+	/*
 	public static void main(String[] args) {
 		// default values
 		int portNumber = 1500;
@@ -212,7 +213,7 @@ public class Client  {
 		}
 		// done disconnect
 		client.disconnect();	
-	}
+	}*/
 
 	/*
 	 * a class that waits for the message from the server and append them to the JTextArea
