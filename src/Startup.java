@@ -3,7 +3,7 @@ import java.awt.event.*;
 
 public class Startup {
 
-	
+	/*
 	public static void main (String[] args){    
 	  JFrame frame = new JFrame("Escolha");
 	  frame.setVisible(true);
@@ -33,7 +33,7 @@ public class Startup {
 		  new ClientGUI("localhost", 1500);
 	  }
 	}   
-
+*/
 }
 
 

@@ -12,7 +12,7 @@ public class Client  {
 	private Socket socket;
 
 	// if I use a GUI or not
-	private ClientGUI cg;
+	private ClientGUI clientGui;
 	
 	// the server, the port and the username
 	private String server, username;
@@ -38,7 +38,7 @@ public class Client  {
 		this.port = port;
 		this.username = username;
 		// save if we are in GUI mode or not
-		this.cg = cg;
+		this.clientGui = cg;
 	}
 	
 	/*
@@ -56,6 +56,7 @@ public class Client  {
 		}
 		
 		String msg = "Connection accepted " + socket.getInetAddress() + ":" + socket.getPort();
+		
 		display(msg);
 	
 		/* Creating both Data Stream */
@@ -90,10 +91,10 @@ public class Client  {
 	 * To send a message to the console or the GUI
 	 */
 	private void display(String msg) {
-		if(cg == null)
+		if(clientGui == null)
 			System.out.println(msg);      // println in console mode
 		else
-			cg.append(msg + "\n");		// append to the ClientGUI JTextArea (or whatever)
+			clientGui.append(msg + "\n");		// append to the ClientGUI JTextArea (or whatever)
 	}
 	
 	/*
@@ -127,8 +128,8 @@ public class Client  {
 		catch(Exception e) {} // not much else I can do
 		
 		// inform the GUI
-		if(cg != null)
-			cg.connectionFailed();
+		if(clientGui != null)
+			clientGui.connectionFailed();
 			
 	}
 	/*
@@ -226,18 +227,18 @@ public class Client  {
 				try {
 					String msg = (String) sInput.readObject();
 					// if console mode print the message and add back the prompt
-					if(cg == null) {
+					if(clientGui == null) {
 						System.out.println(msg);
 						System.out.print("> ");
 					}
 					else {
-						cg.append(msg);
+						clientGui.append(msg);
 					}
 				}
 				catch(IOException e) {
 					display("Server has close the connection: " + e);
-					if(cg != null) 
-						cg.connectionFailed();
+					if(clientGui != null) 
+						clientGui.connectionFailed();
 					break;
 				}
 				// can't happen with a String object but need the catch anyhow

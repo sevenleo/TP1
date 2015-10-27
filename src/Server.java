@@ -10,16 +10,17 @@ public class Server {
 	// a unique ID for each connection
 	private static int uniqueId;
 	// an ArrayList to keep the list of the Client
-	private ArrayList<ClientThread> al;
+	private ArrayList<ClientThread> clients;
 	// if I am in a GUI
-	private ServerGUI sg;
+	private ServerGUI serverGui;
 	// to display time
-	private SimpleDateFormat sdf;
+	private SimpleDateFormat simpleDateFormat;
 	// the port number to listen for connection
 	private int port;
 	// the boolean that will be turned of to stop the server
 	private boolean keepGoing;
 	
+	private Map clienteMap;
 
 	/*
 	 *  server constructor that receive the port to listen to for connection as parameter
@@ -31,13 +32,14 @@ public class Server {
 	
 	public Server(int port, ServerGUI sg) {
 		// GUI or not
-		this.sg = sg;
+		this.serverGui = sg;
 		// the port
 		this.port = port;
 		// to display hh:mm:ss
-		sdf = new SimpleDateFormat("HH:mm:ss");
+		simpleDateFormat = new SimpleDateFormat("HH:mm:ss");
 		// ArrayList for the Client list
-		al = new ArrayList<ClientThread>();
+		clients = new ArrayList<ClientThread>();
+		clienteMap = new HashMap<String,ClientThread>();
 	}
 	
 	public void start() {
@@ -54,19 +56,21 @@ public class Server {
 				// format message saying we are waiting
 				display("Server waiting for Clients on port " + port + ".");
 				
-				Socket socket = serverSocket.accept();  	// accept connection
+				Socket socket = serverSocket.accept();// accept connection
+				
 				// if I was asked to stop
 				if(!keepGoing)
 					break;
 				ClientThread t = new ClientThread(socket);  // make a thread of it
-				al.add(t);									// save it in the ArrayList
+				clients.add(t);// save it in the ArrayList
+				clienteMap.put(t.username, t);
 				t.start();
 			}
 			// I was asked to stop
 			try {
 				serverSocket.close();
-				for(int i = 0; i < al.size(); ++i) {
-					ClientThread tc = al.get(i);
+				for(int i = 0; i < clients.size(); ++i) {
+					ClientThread tc = clients.get(i);
 					try {
 					tc.sInput.close();
 					tc.sOutput.close();
@@ -83,7 +87,7 @@ public class Server {
 		}
 		// something went bad
 		catch (IOException e) {
-            String msg = sdf.format(new Date()) + " Exception on new ServerSocket: " + e + "\n";
+            String msg = simpleDateFormat.format(new Date()) + " Exception on new ServerSocket: " + e + "\n";
 			display(msg);
 		}
 	}		
@@ -105,45 +109,70 @@ public class Server {
 	 * Display an event (not a message) to the console or the GUI
 	 */
 	private void display(String msg) {
-		String time = sdf.format(new Date()) + " " + msg;
-		if(sg == null)
+		String time = simpleDateFormat.format(new Date()) + " " + msg;
+		if(serverGui == null)
 			System.out.println(time);
 		else
-			sg.appendEvent(time + "\n");
+			serverGui.appendEvent(time + "\n");
 	}
 	/*
 	 *  to broadcast a message to all Clients
 	 */
 	private synchronized void broadcast(String message) {
 		// add HH:mm:ss and \n to the message
-		String time = sdf.format(new Date());
+		String time = simpleDateFormat.format(new Date());
 		String messageLf = time + " " + message + "\n";
 		// display message on console or GUI
-		if(sg == null)
+		if(serverGui == null)
 			System.out.print(messageLf);
 		else
-			sg.appendRoom(messageLf);     // append in the room window
+			serverGui.appendRoom(messageLf);     // append in the room window
 		
 		// we loop in reverse order in case we would have to remove a Client
 		// because it has disconnected
-		for(int i = al.size(); --i >= 0;) {
-			ClientThread ct = al.get(i);
+		for(int i = clients.size(); --i >= 0;) {
+			ClientThread ct = clients.get(i);
 			// try to write to the Client if it fails remove it from the list
 			if(!ct.writeMsg(messageLf)) {
-				al.remove(i);
+				clients.remove(i);
 				display("Disconnected Client " + ct.username + " removed from list.");
 			}
 		}
 	}
 
+	
+	private synchronized void directmessage(String username, String message) {
+		// add HH:mm:ss and \n to the message
+		String time = simpleDateFormat.format(new Date());
+		String messageLf = time + " " + message + "\n";
+		// display message on console or GUI
+		if(serverGui == null)
+			System.out.print(messageLf);
+		else
+			serverGui.appendRoom(messageLf);     // append in the room window
+		
+		// we loop in reverse order in case we would have to remove a Client
+		// because it has disconnected
+		
+		
+		
+		ClientThread ct = (ClientThread) clienteMap.get(username);
+		// try to write to the Client if it fails remove it from the list
+		if(!ct.writeMsg(messageLf)) {
+			clients.remove(ct);
+			display("Disconnected Client " + ct.username + " removed from list.");
+		}
+	
+	}
+	
 	// for a client who logoff using the LOGOUT message
 	synchronized void remove(int id) {
 		// scan the array list until we found the Id
-		for(int i = 0; i < al.size(); ++i) {
-			ClientThread ct = al.get(i);
+		for(int i = 0; i < clients.size(); ++i) {
+			ClientThread ct = clients.get(i);
 			// found it
 			if(ct.id == id) {
-				al.remove(i);
+				clients.remove(i);
 				return;
 			}
 		}
@@ -155,7 +184,7 @@ public class Server {
 	 * > java Server portNumber
 	 * If the port number is not specified 1500 is used
 	 */ 
-	/*
+	
 	public static void main(String[] args) {
 		// start server on port 1500 unless a PortNumber is specified 
 		int portNumber = 1500;
@@ -179,7 +208,7 @@ public class Server {
 		// create a server object and start it
 		Server server = new Server(portNumber);
 		server.start();
-	}*/
+	}
 
 	/** One instance of this thread will run for each client */
 	class ClientThread extends Thread {
@@ -246,17 +275,24 @@ public class Server {
 				switch(cm.getType()) {
 
 				case ChatMessage.MESSAGE:
-					broadcast(username + ": " + message);
+					if (message.startsWith("$")){
+						display("A mensagem "+message+" começa com @");
+						String receiver = message.split(" ")[0].substring(1);
+						message = message.split(" ")[0].substring(receiver.length());
+						directmessage(receiver, message);
+					} else {
+						display("A mensagem "+message+" NÃO começa com @");
+						broadcast(username + ": " + message);
+					}
 					break;
 				case ChatMessage.LOGOUT:
 					display(username + " disconnected with a LOGOUT message.");
-					keepGoing = false;
-					break;
+					broadcast(username+" logged out.");
 				case ChatMessage.WHOISIN:
-					writeMsg("List of the users connected at " + sdf.format(new Date()) + "\n");
+					writeMsg("List of the users connected at " + simpleDateFormat.format(new Date()) + "\n");
 					// scan al the users connected
-					for(int i = 0; i < al.size(); ++i) {
-						ClientThread ct = al.get(i);
+					for(int i = 0; i < clients.size(); ++i) {
+						ClientThread ct = clients.get(i);
 						writeMsg((i+1) + ") " + ct.username + " since " + ct.date);
 					}
 					break;
