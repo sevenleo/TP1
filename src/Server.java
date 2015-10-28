@@ -141,26 +141,48 @@ public class Server {
 	}
 
 	
-	private synchronized void directmessage(String username, String message) {
+	private synchronized void directmessage(String username, String targetuser, String message) {
 		// add HH:mm:ss and \n to the message
 		String time = simpleDateFormat.format(new Date());
-		String messageLf = time + " " + message + "\n";
+		String messageLf = time + " " +"["+username+ "> " + targetuser+ "] " + message + "\n";
 		// display message on console or GUI
 		if(serverGui == null)
 			System.out.print(messageLf);
 		else
 			serverGui.appendRoom(messageLf);     // append in the room window
 		
-		// we loop in reverse order in case we would have to remove a Client
-		// because it has disconnected
+
 		
-		
-		
-		ClientThread ct = (ClientThread) clienteMap.get(username);
-		// try to write to the Client if it fails remove it from the list
-		if(!ct.writeMsg(messageLf)) {
-			clients.remove(ct);
-			display("Disconnected Client " + ct.username + " removed from list.");
+		try{
+			//tenta enviar para o destinatario
+			ClientThread ct = (ClientThread) clienteMap.get(targetuser);
+			// try to write to the Client if it fails remove it from the list
+			if(!ct.writeMsg(messageLf)) {
+				clients.remove(ct);
+				display("Disconnected Client " + ct.username + " removed from list.");
+			}
+			
+			//envia para a sua propria caixa de msgs
+			ct = (ClientThread) clienteMap.get(username);
+			// try to write to the Client if it fails remove it from the list
+			if(!ct.writeMsg(messageLf)) {
+				clients.remove(ct);
+				display("Disconnected Client " + ct.username + " removed from list.");
+			}
+			
+			
+		}catch(Exception e) {
+			//TODO: usuario nao encontrado
+			display(" username ... falando com um usuario que nao existe");
+			//tenta enviar para o destinatario
+			ClientThread ct = (ClientThread) clienteMap.get(username);
+			// try to write to the Client if it fails remove it from the list
+			if(!ct.writeMsg("O DESTINATARIO @"+targetuser+" NAO ESTA NA SALA.")) {
+				clients.remove(ct);
+				display("Disconnected Client " + ct.username + " removed from list.");
+			}
+			
+			
 		}
 	
 	}
@@ -275,13 +297,16 @@ public class Server {
 				switch(cm.getType()) {
 
 				case ChatMessage.MESSAGE:
-					if (message.startsWith("$")){
-						display("A mensagem "+message+" começa com @");
+					String separator = "@";
+					if (message.startsWith(separator)){
+						display("Mensagem privada de "+ separator+username);
 						String receiver = message.split(" ")[0].substring(1);
-						message = message.split(" ")[0].substring(receiver.length());
-						directmessage(receiver, message);
+						
+						//TODO: o codigo tava errado agora "funciona", mas nao roda bem para mensagens com espaços, pq o split estraga
+						message = message.substring(receiver.length()+1); 
+						directmessage(username,receiver, message);
 					} else {
-						display("A mensagem "+message+" NÃO começa com @");
+						display("Mensagem publica de "+ separator+username);
 						broadcast(username + ": " + message);
 					}
 					break;
