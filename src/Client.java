@@ -236,7 +236,7 @@ public class Client  {
 					}
 				}
 				catch(IOException e) {
-					display("Server has close the connection: " + e);
+					display("A conexão com o servidor foi finalizada.");
 					if(clientGui != null) 
 						clientGui.connectionFailed();
 					break;

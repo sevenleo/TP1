@@ -41,9 +41,9 @@ public class Startup {
 	
 	static class test implements ActionListener {        
 		  public void actionPerformed (ActionEvent e) {     
-			  new ClientGUI("localhost", 1500);
-			  new ClientGUI("localhost", 1500);
-			  new ServerGUI(1500);
+			  //new ClientGUI("localhost", 1500);
+			  //new ClientGUI("localhost", 1500);
+			  new Server(1500);
 		  }
 		}   
 

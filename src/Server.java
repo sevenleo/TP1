@@ -310,9 +310,12 @@ public class Server {
 						broadcast(username + ": " + message);
 					}
 					break;
+
 				case ChatMessage.LOGOUT:
 					display(username + " disconnected with a LOGOUT message.");
 					broadcast(username+" logged out.");
+                    keepGoing = false;
+
 				case ChatMessage.WHOISIN:
 					writeMsg("List of the users connected at " + simpleDateFormat.format(new Date()) + "\n");
 					// scan al the users connected
