@@ -2,19 +2,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-/*
- * The server as a GUI
- */
+
 public class ServerGUI extends JFrame implements ActionListener, WindowListener {
 	
 	private static final long serialVersionUID = 1L;
-	// the stop and start buttons
 	private JButton stopStart;
-	// JTextArea for the chat room and the events
 	private JTextArea chat, event;
-	// The port number
 	private JTextField tPortNumber;
-	// my server
 	private Server server;
 	
 	
@@ -22,96 +16,101 @@ public class ServerGUI extends JFrame implements ActionListener, WindowListener 
 	ServerGUI(int port) {
 		super("Chat Server - TP2015.2");
 		server = null;
-		// in the NorthPanel the PortNumber the Start and Stop buttons
-		JPanel north = new JPanel();
-		north.add(new JLabel("Port number: "));
+		// painel superior contem as informacoes da porta e o botao 'iniciar'
+		JPanel painelsuperior = new JPanel();
+		painelsuperior.add(new JLabel("Porta: "));
 		tPortNumber = new JTextField("  " + port);
-		north.add(tPortNumber);
-		// to stop or start the server, we start with "Start"
-		stopStart = new JButton("Start");
-		stopStart.addActionListener(this);
-		north.add(stopStart);
-		add(north, BorderLayout.NORTH);
+		painelsuperior.add(tPortNumber);
 		
-		// the event and chat room
-		JPanel center = new JPanel(new GridLayout(2,1));
+		stopStart = new JButton("Iniciar servidor");
+		stopStart.addActionListener(this);
+		painelsuperior.add(stopStart);
+		add(painelsuperior, BorderLayout.NORTH);
+		
+		// painel central contem o historico do chat e a a caixa de eventos
+		JPanel painelcentral = new JPanel(new GridLayout(2,1));
 		chat = new JTextArea(80,80);
 		chat.setEditable(false);
-		appendRoom("Chat room.\n");
-		center.add(new JScrollPane(chat));
+		
+		appendRoom("Sala de bate-papo TP2015.2:\n");
+		
+		painelcentral.add(new JScrollPane(chat));
 		event = new JTextArea(80,80);
 		event.setEditable(false);
-		appendEvent("Events log.\n");
-		center.add(new JScrollPane(event));	
-		add(center);
 		
-		// need to be informed when the user click the close button on the frame
+		//appendEvent("caixa de eventos:\n");
+		
+	
+		painelcentral.add(new JScrollPane(event));	
+		add(painelcentral);
+		
+		// listener para os botoes default da janela(fecha,maximiza,...
 		addWindowListener(this);
 		setSize(400, 600);
 		setVisible(true);
 	}		
 
-	// append message to the two JTextArea
-	// position at the end
+	
+	// caixas de texto
 	void appendRoom(String str) {
 		chat.append(str);
-		chat.setCaretPosition(chat.getText().length() - 1);
+		chat.setCaretPosition(chat.getText().length() - 1); //atualiza posicao da caixa de texto
 	}
 	void appendEvent(String str) {
 		event.append(str);
-		event.setCaretPosition(chat.getText().length() - 1);
+		//event.setCaretPosition(chat.getText().length() - 1); //atualiza posicao da caixa de texto
+		//nao entendi o porque do erro?? ///TODO:
 		
 	}
 	
-	// start or stop where clicked
+
+
+	//listener para o botao iniciar
 	public void actionPerformed(ActionEvent e) {
-		// if running we have to stop
+		//se o servidor ja esta iniciado finalizar , caso contrario iniciar
 		if(server != null) {
 			server.stop();
 			server = null;
 			tPortNumber.setEditable(true);
-			stopStart.setText("Start");
+			stopStart.setText("Reiniciar servidor");
 			return;
 		}
-      	// OK start the server	
+
+		//iniciar
+		// a porta de comunicacao deve ser maior que 1000
+		if (Integer.parseInt(tPortNumber.getText().trim()) <1024) {
+			appendEvent("Porta invalida, tente alguma maior que 1024.\n");
+			return;
+		}
 		int port;
 		try {
 			port = Integer.parseInt(tPortNumber.getText().trim());
 		}
 		catch(Exception er) {
-			appendEvent("Invalid port number");
+			appendEvent("numero de porta invalida");
 			return;
 		}
-		// ceate a new Server
+		
+
+		//inicia engine e a thread responsaveis pelo servidor		
 		server = new Server(port, this);
-		// and start it as a thread
 		new ServerRunning().start();
-		stopStart.setText("Stop");
+		stopStart.setText("Encerrar servidor");
 		tPortNumber.setEditable(false);
 	}
 	
-	// entry point to start the Server
-	
-	public static void main(String[] arg) {
-		// start server default port 1500
-		new ServerGUI(1500);
-	}
 
-	/*
-	 * If the user click the X button to close the application
-	 * I need to close the connection with the server to free the port
-	 */
+	
+
+	//MANIPULAÇAO DOS BOTOES DA JANELA
 	public void windowClosing(WindowEvent e) {
-		// if my Server exist
 		if(server != null) {
 			try {
-				server.stop();			// ask the server to close the conection
-			}
-			catch(Exception eClose) {
+				server.stop();			//ENCERRAR O SERVICO CASO O BOTAO FECHAR FOR PRESSIONADO
+			} catch(Exception eClose) {
 			}
 			server = null;
 		}
-		// dispose the frame
 		dispose();
 		System.exit(0);
 	}
@@ -123,16 +122,27 @@ public class ServerGUI extends JFrame implements ActionListener, WindowListener 
 	public void windowActivated(WindowEvent e) {}
 	public void windowDeactivated(WindowEvent e) {}
 
-	/*
-	 * A thread to run the Server
-	 */
+	
+	/**========= EXECUCAO INDIVIDUAL =============**/
+	
+	
+	public static void main(String[] arg) {
+		new ServerGUI(1500);
+	}
+	
+	
+	
+	/**====================================================**/
+	/**========= THREAD DO SERVIDOR =============**/
+	/**====================================================**/
+
 	class ServerRunning extends Thread {
 		public void run() {
-			server.start();         // should execute until if fails
+			server.start();         //executando em looping
 			// the server failed
-			stopStart.setText("Start");
+			stopStart.setText("Reiniciar servidor");
 			tPortNumber.setEditable(true);
-			appendEvent("Server crashed\n");
+			appendEvent("Servidor offline\n");
 			server = null;
 		}
 	}

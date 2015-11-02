@@ -45,7 +45,7 @@ public class Server {
 			// espera conexoes de clientes
 			while(serverRunning) 
 			{
-				display("Servidor ativo e pronto para conexões na porta " + port + ".");
+				display("Servidor online.\nConecte-se através da porta " + port + ".");
 				// espera conexão - servidor ativo
 				Socket socket = serverSocket.accept();  
 				
@@ -53,8 +53,8 @@ public class Server {
 				if(!serverRunning) break;
 				
 				// caso o servidor permaneca ativo
-				ClientThread t = new ClientThread(socket);  // make a thread of it
-				clients.add(t);// save it in the ArrayList
+				ClientThread t = new ClientThread(socket);  
+				clients.add(t);
 				clienteMap.put(t.username, t);
 				t.start();
 			}
@@ -77,7 +77,11 @@ public class Server {
 				display("Houve um erro durante o encerramento das conexões.");
 			}
 		} catch (IOException e) {
-            String msg = horario.format(new Date()) + " Erro durante a inicializacao do ServerSocket: \n";
+            String msg = horario.format(new Date()) + 
+            		" Erro durante a inicializacao do ServerSocket:\n"+
+            		"Provavelmente porta desejada\n"+ 
+            		"nao foi liberada pelo S.O. "+
+            		"tente uma porta mais alta";
 			display(msg);
 		}
 	}		
@@ -86,13 +90,12 @@ public class Server {
 	//encerra servidor
 	protected void stop() {
 		serverRunning = false;
-		////////////////////////////////////////////////////////////////////////TODO:
-		// connect to myself as Client to exit statement 
-		// Socket socket = serverSocket.accept();
+		//TODO:TESTE: tentar se conectar para verficar se o socket fechou 
 		try {
 			new Socket("localhost", port); 
 		}
-		catch(Exception e) {}
+		catch(Exception e) {
+		}
 	}
 	
 	
@@ -245,19 +248,42 @@ public class Server {
 				// create output first
 				sOutput = new ObjectOutputStream(socket.getOutputStream());
 				sInput  = new ObjectInputStream(socket.getInputStream());
+
 				
 				// recebe o nome de usuario, como a primeira mensagem do stream
 				username = (String) sInput.readObject();
-				display("@"+username + " entrou na sala.");
 				
+	            //Verificar se o nome de usuario ja esta sendo usado.
+	            //trocar pelo metodo do hashmap
+				for (int i = clients.size(); --i >= 0;) {
+					ClientThread clientthread = clients.get(i);
+					if ( clientthread.username.equalsIgnoreCase(username) ) {
+						///como parar o try ?, pois se o usuario ja existe deve ser impedido
+						// fazer > throw new Exception();
+					}
+				}
+				display("@"+username + " entrou na sala.");
+			
 			} catch (IOException e) {
 				display("Erro na comunicacao i/o");
 				return;
 			} catch (ClassNotFoundException e) {
 				display("Erro na comunicacao i/o");
 				return;
-			}
+			} 
+			
             date = new Date().toString() + "\n";
+            
+            
+            
+            
+
+			
+			
+			
+            
+            
+            
 		}
 
 
