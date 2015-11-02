@@ -259,7 +259,7 @@ public class Server {
 					ClientThread clientthread = clients.get(i);
 					if ( clientthread.username.equalsIgnoreCase(username) ) {
 						///como parar o try ?, pois se o usuario ja existe deve ser impedido
-						// fazer > throw new Exception();
+						// fazer >>> throw new Exception();
 					}
 				}
 				display("@"+username + " entrou na sala.");
