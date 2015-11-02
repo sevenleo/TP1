@@ -8,7 +8,7 @@ import java.io.*;
  */
 public class ChatMessage implements Serializable { 
 
-	protected static final long serialVersionUID = 1112122200L; /////////////////////////////////
+	protected static final long serialVersionUID = 1112122200L; /////////////////////////////////TODO:
 
 	static final int WHOISIN = 0, MESSAGE = 1, LOGOUT = 2;
 	private int type;
