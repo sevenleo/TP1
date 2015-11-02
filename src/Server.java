@@ -13,7 +13,7 @@ public class Server {
 	
 	//antigo boolean keepGoing
 	private boolean serverRunning;				//servidor se mantem ativo se essa boolean=true
-	private Map clienteMap;						//linkar username<>thread.id de cada cliente
+	private Map <String,ClientThread> clienteMap;						//linkar username<>thread.id de cada cliente
 
 
 	//construtor usado para servidor SEM janela grafica
@@ -111,7 +111,7 @@ public class Server {
 	
 	
 	// Mensagem broadcast, enviada a todos os clientes do chat
-	private synchronized void broadcast(String message) {
+	private synchronized void broadcast(String message,String sender) {
 		String time = horario.format(new Date());
 		String messageBroadcast = time + " " + message + "\n";
 		
@@ -120,14 +120,17 @@ public class Server {
 		else serverGui.appendRoom(messageBroadcast);     
 		
 		// envia mensagem para todos os usuarios 
-		for (int i = clients.size(); --i >= 0;) {
+		for (Object key : clienteMap.keySet()) {
 			
-			ClientThread clientthread = clients.get(i);
+			ClientThread clientthread = (ClientThread) clienteMap.get((String) key);
 			
-			//se o envio da mensagem falhar, remover cliente da lista
-			if(!clientthread.writeMsg(messageBroadcast)) {
-				clients.remove(i);
-				display("O cliente @" + clientthread.username + " esta desconectado e foi removido da lista.");
+			if(!((String)key).equals(sender)) {
+				//se o envio da mensagem falhar, remover cliente da lista
+				if(!clientthread.writeMsg(messageBroadcast)) {
+					clients.remove(clienteMap.get((String)key));
+					clienteMap.remove((String)key);
+					display("O cliente @" + clientthread.username + " esta desconectado e foi removido da lista.");
+				}
 			}
 		}
 	}
@@ -153,10 +156,10 @@ public class Server {
 			
 			//envia para a caixa de msgs do proprio remetente
 			//se o envio da mensagem falhar, remover cliente da lista
-			if(!remetenteThread.writeMsg(menssagemDireta)) {
+		/*	if(!remetenteThread.writeMsg(menssagemDireta)) {
 				clients.remove(remetenteThread);
 				display("O cliente @" + remetenteThread.username + " esta desconectado e foi removido da lista.");
-			}
+			}*/
 		}catch(Exception e) {
 			//TODO: usuario nao encontrado
 			display("@"+username+" esta falando sozinho");
@@ -315,20 +318,31 @@ public class Server {
 
 				case ChatMessage.MESSAGE:
 					String separator = "@";
-					if (message.startsWith(separator)){
+					/*if (message.startsWith(separator)){
 						display("Mensagem privada de "+ separator+username);
 						String receiver = message.split(" ")[0].substring(1);
 						message = message.substring(receiver.length()+1); 
-						directmessage(username,receiver, message);
+						directmessage(username,receiver, message);*/
+					if(message.startsWith(separator)) {
+						java.util.List<String> receivers = new ArrayList<String>();
+						
+						while(message.startsWith(separator)) {
+								receivers.add(message.split(" ")[0].substring(1));
+								message = message.substring(message.split(" ")[0].length()).trim();
+						}
+						
+						for(String receiver : receivers) {
+							directmessage(username,receiver, message);
+						}
 					} else {
 						display("Mensagem publica de "+ separator+username);
-						broadcast("["+username + "]: " + message);
+						broadcast("["+username + "]: " + message,username);
 					}
 					break;
 
 				case ChatMessage.LOGOUT:
 					display("@"+username + " fez LOGOFF");
-					broadcast("@"+username+" saiu da sala.");
+					broadcast("@"+username+" saiu da sala.",username);
                     clientRunning = false;
 
 				case ChatMessage.WHOISIN:

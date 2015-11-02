@@ -1,7 +1,20 @@
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Random;
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 
 
 
@@ -18,6 +31,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 	private int defaultPort;
 	private String defaultHost;
 	public int random;
+	private String username;
 
 	//construtor recebe um socket
 	ClientGUI(String host, int port) {
@@ -121,13 +135,16 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 		if(connected) {
 			client.sendMessage(new ChatMessage(ChatMessage.MESSAGE, tf.getText()));				
+			ta.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+" [ "+username+" ] " + tf.getText()+"\n");
 			tf.setText("");
+			
 			return;
 		}
 		
 
 		if(o == login) {
-			String username = tf.getText().trim();
+			username = tf.getText().trim();
+			
 			if(username.length() == 0)			//se o usuario esta em branco, ignorar
 				return;
 
