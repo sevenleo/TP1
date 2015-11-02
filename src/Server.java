@@ -3,139 +3,125 @@ import java.net.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-/*
- * The server that can be run both as a console application or a GUI
- */
 public class Server {
-	// a unique ID for each connection
-	private static int uniqueId;
-	// an ArrayList to keep the list of the Client
-	private ArrayList<ClientThread> clients;
-	// if I am in a GUI
-	private ServerGUI serverGui;
-	// to display time
-	private SimpleDateFormat simpleDateFormat;
-	// the port number to listen for connection
-	private int port;
-	// the boolean that will be turned of to stop the server
-	private boolean keepGoing;
 	
-	private Map clienteMap;
+	private static int uniqueId;				//identifica cada conexao
+	private ArrayList<ClientThread> clients; 	//lista de clientes
+	private ServerGUI serverGui; 				//parte grafica - Gui
+	private SimpleDateFormat horario; 			//registro de horario com o padrao HH:mm:ss
+	private int port;							//porta aberta para conexao
+	
+	//antigo boolean keepGoing
+	private boolean serverRunning;				//servidor se mantem ativo se essa boolean=true
+	private Map clienteMap;						//linkar username<>thread.id de cada cliente
 
-	/*
-	 *  server constructor that receive the port to listen to for connection as parameter
-	 *  in console
-	 */
+
+	//construtor usado para servidor SEM janela grafica
 	public Server(int port) {
 		this(port, null);
 	}
 	
-	public Server(int port, ServerGUI sg) {
-		// GUI or not
-		this.serverGui = sg;
-		// the port
+	//construtor usado para servidor COM janela grafica
+	public Server(int port, ServerGUI servergui) {
+		this.serverGui = servergui;
 		this.port = port;
-		// to display hh:mm:ss
-		simpleDateFormat = new SimpleDateFormat("HH:mm:ss");
-		// ArrayList for the Client list
+		horario = new SimpleDateFormat("HH:mm:ss");
 		clients = new ArrayList<ClientThread>();
 		clienteMap = new HashMap<String,ClientThread>();
 	}
 	
+	
+	/**====================================================**/
+	/**================comunicacao=========================**/
+	/**====================================================**/
+	
+	//inicia servidor
 	public void start() {
-		keepGoing = true;
-		/* create socket server and wait for connection requests */
-		try 
-		{
-			// the socket used by the server
+		serverRunning = true;
+		try {
+			// Abre o seu socket para conexões de clientes
 			ServerSocket serverSocket = new ServerSocket(port);
 
-			// infinite loop to wait for connections
-			while(keepGoing) 
+			// espera conexoes de clientes
+			while(serverRunning) 
 			{
-				// format message saying we are waiting
-				display("Server waiting for Clients on port " + port + ".");
+				display("Servidor ativo e pronto para conexões na porta " + port + ".\n");
+				// espera conexão - servidor ativo
+				Socket socket = serverSocket.accept();  
 				
-				Socket socket = serverSocket.accept();// accept connection
+				// desligar servidor
+				if(!serverRunning) break;
 				
-				// if I was asked to stop
-				if(!keepGoing)
-					break;
+				// caso o servidor permaneca ativo
 				ClientThread t = new ClientThread(socket);  // make a thread of it
 				clients.add(t);// save it in the ArrayList
 				clienteMap.put(t.username, t);
 				t.start();
 			}
-			// I was asked to stop
+			
+			//desligando servidor
 			try {
-				serverSocket.close();
-				for(int i = 0; i < clients.size(); ++i) {
-					ClientThread tc = clients.get(i);
-					try {
-					tc.sInput.close();
-					tc.sOutput.close();
-					tc.socket.close();
+					//fechar socket, novas conexoes nao serao aceitas
+					serverSocket.close();
+					
+					//fechar canais de entrada e saida para cada cliente
+					for(int i = 0; i < clients.size(); ++i) {
+						ClientThread clientthread = clients.get(i);
+						try {
+							clientthread.sInput.close();
+							clientthread.sOutput.close();
+							clientthread.socket.close();
+						} catch(IOException ioE) {}
 					}
-					catch(IOException ioE) {
-						// not much I can do
-					}
-				}
+			} catch(Exception e) {
+				display("Houve um erro durante o encerramento das conexões.");
 			}
-			catch(Exception e) {
-				display("Exception closing the server and clients: " + e);
-			}
-		}
-		// something went bad
-		catch (IOException e) {
-            String msg = simpleDateFormat.format(new Date()) + " Exception on new ServerSocket: " + e + "\n";
+		} catch (IOException e) {
+            String msg = horario.format(new Date()) + " Erro durante a inicializacao do ServerSocket: \n";
 			display(msg);
 		}
 	}		
-    /*
-     * For the GUI to stop the server
-     */
+
+	
+	//encerra servidor
 	protected void stop() {
-		keepGoing = false;
+		serverRunning = false;
+		////////////////////////////////////////////////////////////////////////
 		// connect to myself as Client to exit statement 
 		// Socket socket = serverSocket.accept();
 		try {
-			new Socket("localhost", port);
+			new Socket("localhost", port); 
 		}
-		catch(Exception e) {
-			// nothing I can really do
-		}
+		catch(Exception e) {}
 	}
-	/*
-	 * Display an event (not a message) to the console or the GUI
-	 */
+	
+	
+	//caixa de mensagens do servidor [modo terminal ou janela grafica]
 	private void display(String msg) {
-		String time = simpleDateFormat.format(new Date()) + " " + msg;
-		if(serverGui == null)
-			System.out.println(time);
-		else
-			serverGui.appendEvent(time + "\n");
+		String time = horario.format(new Date()) + " " + msg;
+		if(serverGui == null) System.out.println(time);
+		else serverGui.appendEvent(time + "\n");
 	}
-	/*
-	 *  to broadcast a message to all Clients
-	 */
+	
+	
+	// Mensagem broadcast, enviada a todos os clientes do chat
 	private synchronized void broadcast(String message) {
-		// add HH:mm:ss and \n to the message
-		String time = simpleDateFormat.format(new Date());
-		String messageLf = time + " " + message + "\n";
-		// display message on console or GUI
-		if(serverGui == null)
-			System.out.print(messageLf);
-		else
-			serverGui.appendRoom(messageLf);     // append in the room window
+		String time = horario.format(new Date());
+		String messageBroadcast = time + " " + message + "\n";
 		
-		// we loop in reverse order in case we would have to remove a Client
-		// because it has disconnected
-		for(int i = clients.size(); --i >= 0;) {
+		//display mensagem 
+		if(serverGui == null) System.out.print(messageBroadcast);
+		else serverGui.appendRoom(messageBroadcast);     
+		
+		// envia mensagem para todos os usuarios 
+		for (int i = clients.size(); --i >= 0;) {
+			
 			ClientThread ct = clients.get(i);
-			// try to write to the Client if it fails remove it from the list
-			if(!ct.writeMsg(messageLf)) {
+			
+			//se o envio da mensagem falhar, remover cliente da lista
+			if(!ct.writeMsg(messageBroadcast)) {
 				clients.remove(i);
-				display("Disconnected Client " + ct.username + " removed from list.");
+				display("O cliente @" + ct.username + " esta desconectado e foi removido da lista.");
 			}
 		}
 	}
@@ -143,7 +129,7 @@ public class Server {
 	
 	private synchronized void directmessage(String username, String targetuser, String message) {
 		// add HH:mm:ss and \n to the message
-		String time = simpleDateFormat.format(new Date());
+		String time = horario.format(new Date());
 		String messageLf = time + " " +"["+username+ "> " + targetuser+ "] " + message + "\n";
 		// display message on console or GUI
 		if(serverGui == null)
@@ -301,8 +287,6 @@ public class Server {
 					if (message.startsWith(separator)){
 						display("Mensagem privada de "+ separator+username);
 						String receiver = message.split(" ")[0].substring(1);
-						
-						//TODO: o codigo tava errado agora "funciona", mas nao roda bem para mensagens com espaços, pq o split estraga
 						message = message.substring(receiver.length()+1); 
 						directmessage(username,receiver, message);
 					} else {
@@ -317,7 +301,7 @@ public class Server {
                     keepGoing = false;
 
 				case ChatMessage.WHOISIN:
-					writeMsg("List of the users connected at " + simpleDateFormat.format(new Date()) + "\n");
+					writeMsg("List of the users connected at " + horario.format(new Date()) + "\n");
 					// scan al the users connected
 					for(int i = 0; i < clients.size(); ++i) {
 						ClientThread ct = clients.get(i);

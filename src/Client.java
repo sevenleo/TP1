@@ -75,8 +75,7 @@ public class Client  {
 		
 		
 		// tenta enviar a primeira mensagem
-		try
-		{
+		try	{
 			sOutput.writeObject(username);
 		} catch (IOException eIO) {
 			display("A comunicação não foi estabelecida por completo, a conexão será desfeita");
@@ -135,6 +134,7 @@ public class Client  {
 	class ListenFromServer extends Thread {
 
 		public void run() {
+			display("Bem vindo à sala [TP]:\n");
 			while(true) {
 				try {
 					
@@ -144,7 +144,7 @@ public class Client  {
 						System.out.print("> "); //sinal que indica que o terminal esta pronto para uso
 					}
 					else {
-						clientGui.append(msg);
+						clientGui.append(msg); //envia ao GUi
 					}
 					
 				} catch(IOException e) {
