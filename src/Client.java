@@ -134,7 +134,7 @@ public class Client  {
 	class ListenFromServer extends Thread {
 
 		public void run() {
-			display("Bem vindo à sala TP-2015.2:\n");
+			display("Bem vindo à sala TP-2015.2:\n___________________________");
 			while(true) {
 				try {
 					

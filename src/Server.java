@@ -90,7 +90,7 @@ public class Server {
 	//encerra servidor
 	protected void stop() {
 		serverRunning = false;
-		//TODO:TESTE: tentar se conectar para verficar se o socket fechou 
+		//TESTE: tentar se conectar para verficar se o socket fechou 
 		try {
 			new Socket("localhost", port); 
 		}
@@ -161,7 +161,7 @@ public class Server {
 				display("O cliente @" + remetenteThread.username + " esta desconectado e foi removido da lista.");
 			}*/
 		}catch(Exception e) {
-			//TODO: usuario nao encontrado
+			//usuario nao encontrado
 			display("@"+username+" esta falando sozinho");
 			
 			//envia alerta de erro para o destinatario
@@ -248,7 +248,7 @@ public class Server {
 			//se conecta aos canais de entrada e saida criados pelo usuario ao conectar o socket
 			
 			try	{
-				// create output first
+				//cria canais
 				sOutput = new ObjectOutputStream(socket.getOutputStream());
 				sInput  = new ObjectInputStream(socket.getInputStream());
 
@@ -261,8 +261,8 @@ public class Server {
 				for (int i = clients.size(); --i >= 0;) {
 					ClientThread clientthread = clients.get(i);
 					if ( clientthread.username.equalsIgnoreCase(username) ) {
-						///como parar o try ?, pois se o usuario ja existe deve ser impedido
-						// fazer >>> throw new Exception();
+						///parar o try, pois se o usuario ja existe deve ser impedido
+						throw new Exception();
 					}
 				}
 				display("@"+username + " entrou na sala.");
@@ -273,6 +273,10 @@ public class Server {
 			} catch (ClassNotFoundException e) {
 				display("Erro na comunicacao i/o");
 				return;
+			} catch (Exception e) {
+				writeMsg("O nome de usuario desejado já está em uso, tente outro.\n\n");
+				close();
+				display("Um dos clientes tentou adquirir um nome de usuario que já esta sendo usado.");
 			} 
 			
             date = new Date().toString() + "\n";
